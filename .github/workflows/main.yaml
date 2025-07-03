@@ -1,0 +1,40 @@
+name: Venom Bot CI
+on: [push, workflow_dispatch]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+          npm install venom-bot qrcode-terminal
+
+      - name: Run Venom Bot
+        env:
+          SESSION_NAME: "github-actions-test"
+        run: |
+          node -e "
+            const venom = require('venom-bot');
+            venom.create({
+              session: process.env.SESSION_NAME,
+              headless: true,
+              logQR: true,
+              browserArgs: ['--no-sandbox', '--disable-setuid-sandbox']
+            })
+            .then((client) => {
+              console.log('Bot started!');
+              client.onMessage((msg) => {
+                if (msg.body === 'ping') client.sendText(msg.from, '🏓 Pong!');
+              });
+            })
+            .catch((err) => console.error(err));
+          "
